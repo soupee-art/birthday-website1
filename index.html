@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Happy Birthday Ayman — Surprise</title>
+  <style>
+    :root{
+      --bg1: #ffeef6; /* light pink */
+      --heart: #e43b5a; /* red hearts */
+      --accent: #ff4d6d;
+      --text: #6b1b3a;
+      --card-bg: rgba(255,255,255,0.6);
+    }
+    html,body{height:100%;margin:0;font-family: 'Poppins', system-ui, sans-serif;}
+    body{background:var(--bg1);overflow:hidden;display:flex;align-items:center;justify-content:center}
+
+    /* hearts floating up */
+    .hearts{position:fixed;left:0;right:0;bottom:0;top:0;pointer-events:none;z-index:1}
+    .heart{
+      position:absolute;bottom:-40px; width:24px;height:24px;
+      color:var(--heart); font-size:20px; line-height:24px; text-align:center;
+      opacity:0.95; transform:translateX(-50%);
+      animation:floatUp linear infinite;
+    }
+    @keyframes floatUp{
+      0%{transform:translateY(0) scale(0.8);opacity:0}
+      10%{opacity:1}
+      100%{transform:translateY(-130vh) scale(1.1);opacity:0}
+    }
+
+    /* center card */
+    .card{position:relative;z-index:3;backdrop-filter:blur(6px);background:var(--card-bg);padding:30px;border-radius:16px;box-shadow:0 8px 30px rgba(107,27,58,0.12);text-align:center;max-width:420px;width:92%}
+    #main-gif{width:220px;height:220px;object-fit:cover;border-radius:12px;display:block;margin:8px auto}
+    #open-btn{display:inline-block;margin-top:14px;padding:12px 18px;border-radius:999px;background:linear-gradient(90deg,var(--accent),#ff7b9a);color:white;font-weight:700;cursor:pointer;user-select:none}
+
+    /* effects */
+    .effects{position:fixed;inset:0;pointer-events:none;z-index:6}
+    canvas{width:100%;height:100%}
+
+    /* final message */
+    .message{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:7;pointer-events:none}
+    .message-inner{max-width:900px;padding:40px;border-radius:18px;text-align:center;transform:scale(0.95);opacity:0;transition:all 700ms cubic-bezier(.2,.9,.3,1);position:relative}
+    .message.show .message-inner{opacity:1;transform:scale(1)}
+    .message h1{font-size:48px;margin:8px 0;color:var(--text);letter-spacing:2px;position:relative;z-index:4}
+    .message p{font-size:20px;color:var(--text);margin:6px 0;position:relative;z-index:4}
+
+    /* overlay GIF positioned behind the text but still visible */
+    .overlay-gif{position:absolute;top:-70px;left:50%;transform:translateX(-50%);width:220px;height:220px;object-fit:cover;border-radius:12px;z-index:3;pointer-events:none;mix-blend-mode:normal;opacity:0.98}
+
+    @media (max-width:480px){.message h1{font-size:32px}.message p{font-size:16px} #main-gif{width:160px;height:160px} .overlay-gif{width:160px;height:160px;top:-60px}}
+  </style>
+</head>
+<body>
+  <!-- IMPORTANT: Put the two GIF files in the same folder as this HTML and name them exactly:
+       1) main.gif    (the GIF shown before opening the surprise)
+       2) overlay.gif (the GIF that appears above the final text)
+       If you don't want to rename, just edit the src attributes below to your filenames. -->
+
+  <div class="hearts" id="hearts"></div>
+
+  <div class="card" id="card" aria-live="polite">
+    <img id="main-gif" src="main.gif" alt="Main GIF (click below to open surprise)">
+    <div id="open-btn" role="button" tabindex="0">Click to Open surprise</div>
+    <div id="status" style="position:absolute;left:-9999px">not opened</div>
+  </div>
+
+  <canvas id="confetti" class="effects" aria-hidden="true"></canvas>
+  <div id="balloons" class="effects" aria-hidden="true"></div>
+
+  <div class="message" id="message" aria-hidden="true">
+    <div class="message-inner" id="messageInner">
+      <img class="overlay-gif" id="overlayGif" src="overlay.gif" alt="overlay gif">
+      <h1>HAPPY BIRTH DAY AIMAN</h1>
+      <p>MAY YOU LIVE A LONG AND HAPPY LIFE (AMEEN)</p>
+    </div>
+  </div>
+
+  <script>
+    // Floating hearts
+    const heartsContainer = document.getElementById('hearts');
+    for(let i=0;i<20;i++){ spawnHeart(i*300); }
+    function spawnHeart(delay){
+      setTimeout(()=>{
+        const h = document.createElement('div');
+        h.className='heart'; h.textContent='♥';
+        h.style.left = Math.random()*100 + '%';
+        h.style.animationDuration = (6 + Math.random()*6) + 's';
+        heartsContainer.appendChild(h);
+        setTimeout(()=>h.remove(),12000);
+      }, delay);
+    }
+
+    // Confetti (simple)
+    const canvas = document.getElementById('confetti');
+    const ctx = canvas.getContext && canvas.getContext('2d');
+    function resize(){ canvas.width = innerWidth; canvas.height = innerHeight }
+    addEventListener('resize', resize); resize();
+    let confetti = [];
+    function spawnConfetti(n){
+      confetti = [];
+      for(let i=0;i<n;i++){ confetti.push({x:Math.random()*canvas.width, y:Math.random()*canvas.height/2, r:4+Math.random()*8, vx:-3+Math.random()*6, vy:-10+Math.random()*-2, rot:Math.random()*360, vr:-6+Math.random()*12, c:['#ff7b9a','#ffd166','#9ad3bc','#ffd1ff'][Math.floor(Math.random()*4)]}); }
+      animateConfetti();
+    }
+    let confettiOn=false;
+    function animateConfetti(){
+      if(!confettiOn) return;
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      for(const p of confetti){
+        p.x += p.vx; p.y += p.vy; p.vy += 0.3; p.rot += p.vr;
+        ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot*Math.PI/180);
+        ctx.fillStyle = p.c; ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r*0.6);
+        ctx.restore();
+      }
+      confetti = confetti.filter(p=>p.y < canvas.height + 50 && p.x > -50 && p.x < canvas.width+50);
+      if(confetti.length===0){ confettiOn=false; return; }
+      requestAnimationFrame(animateConfetti);
+    }
+
+    // Balloons (simple DOM floats)
+    function spawnBalloons(n){
+      const container = document.getElementById('balloons');
+      for(let i=0;i<n;i++){
+        const b = document.createElement('div');
+        b.style.position='absolute'; b.style.width='48px'; b.style.height='64px';
+        b.style.left = (5 + Math.random()*90) + '%'; b.style.bottom='-140px';
+        b.style.borderRadius='50% 50% 45% 45% / 55% 55% 45% 45%';
+        b.style.background = ['#ff7b9a','#ffd166','#9ad3bc','#ffd1ff'][Math.floor(Math.random()*4)];
+        b.style.boxShadow='inset -6px -8px 0 rgba(0,0,0,0.06)'; b.style.zIndex=6; b.style.pointerEvents='none';
+        container.appendChild(b);
+        setTimeout(()=>{ b.style.transition='bottom 5s linear, transform 5s'; b.style.bottom = (60 + Math.random()*30) + '%'; b.style.transform = 'rotate(' + (-10 + Math.random()*20) + 'deg)'; }, 50 + i*120);
+        setTimeout(()=>b.remove(),6000);
+      }
+    }
+
+    // Simple pop/spark sounds (WebAudio)
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx;
+    function playPop(){ if(!AudioCtx) return; audioCtx = audioCtx || new AudioCtx(); const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.type='sine'; o.frequency.setValueAtTime(600,audioCtx.currentTime); g.gain.setValueAtTime(0.0001,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.25,audioCtx.currentTime+0.02); o.connect(g); g.connect(audioCtx.destination); o.start(); o.frequency.exponentialRampToValueAtTime(80,audioCtx.currentTime+0.35); g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+0.4); setTimeout(()=>o.stop(),420); }
+    function playSparkle(){ if(!AudioCtx) return; audioCtx = audioCtx || new AudioCtx(); const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.type='triangle'; o.frequency.setValueAtTime(1200,audioCtx.currentTime); g.gain.setValueAtTime(0.0001,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.08,audioCtx.currentTime+0.01); o.connect(g); g.connect(audioCtx.destination); o.start(); o.frequency.exponentialRampToValueAtTime(600,audioCtx.currentTime+0.5); g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+0.6); setTimeout(()=>o.stop(),650); }
+
+    // Reveal sequence
+    const openBtn = document.getElementById('open-btn');
+    const status = document.getElementById('status');
+    const message = document.getElementById('message');
+    const messageInner = document.getElementById('messageInner');
+    openBtn.addEventListener('click', doOpen);
+    openBtn.addEventListener('keydown', e=>{ if(e.key === 'Enter') doOpen(); });
+    function doOpen(){
+      if(status.textContent === 'opened') return;
+      status.textContent = 'opened';
+      playPop(); playSparkle();
+      spawnBalloons(8); spawnConfetti(80); confettiOn=true;
+      setTimeout(()=>{ confettiOn=true; animateConfetti(); }, 20);
+      setTimeout(()=>{ message.classList.add('show'); message.setAttribute('aria-hidden','false'); }, 900);
+    }
+
+    // Debug helper: show image load errors in console
+    window.addEventListener('error', (e) => {
+      if(e.target && e.target.tagName === 'IMG') console.warn('Image failed to load:', e.target.src);
+    }, true);
+  </script>
+</body>
+</html>
